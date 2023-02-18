@@ -7,6 +7,7 @@ import {
   useParameter,
   useStorybookState,
 } from '@storybook/manager-api';
+import type { API } from '@storybook/manager-api';
 import {
   PureArgsTable as ArgsTable,
   NoControlsWarning,
@@ -24,7 +25,12 @@ interface ControlsParameters {
   hideNoControlsWarning?: boolean;
 }
 
-export const ControlsPanel: FC = () => {
+interface ControlsPanelProps {
+  api: API;
+}
+
+export const ControlsPanel: FC<ControlsPanelProps> = (props) => {
+  const { api } = props;
   const [args, updateArgs, resetArgs] = useArgs();
   const [globals] = useGlobals();
   const rows = useArgTypes();
@@ -51,6 +57,7 @@ export const ControlsPanel: FC = () => {
       {showWarning && <NoControlsWarning />}
       <ArgsTable
         {...{
+          api,
           key: path, // resets state when switching stories
           compact: !expanded && hasControls,
           rows: withPresetColors,

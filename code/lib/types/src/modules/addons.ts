@@ -330,6 +330,7 @@ export interface Addon_Config {
 }
 
 export enum Addon_TypesEnum {
+  CONTROL = 'control',
   TAB = 'tab',
   PANEL = 'panel',
   TOOL = 'tool',

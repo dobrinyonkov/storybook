@@ -88,6 +88,13 @@ export class AddonStore {
     });
   };
 
+  addControl = (name: string, options: Addon_Type): void => {
+    this.add(name, {
+      type: Addon_TypesEnum.CONTROL,
+      ...options,
+    });
+  };
+
   add = (name: string, addon: Addon_Type) => {
     const { type } = addon;
     const collection = this.getElements(type);
