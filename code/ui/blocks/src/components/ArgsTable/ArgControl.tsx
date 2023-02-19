@@ -70,6 +70,8 @@ export const ArgControl: FC<ArgControlProps> = ({ api, row, arg, updateArgs }) =
 
   const Controls = useControls(api);
 
+  console.log('Controls', Controls);
+
   const [isFocused, setFocused] = useState(false);
   // box because arg can be a fn (e.g. actions) and useState calls fn's
   const [boxedValue, setBoxedValue] = useState({ value: arg });
