@@ -8,6 +8,7 @@ import type { PackageJsonWithMaybeDeps, PackageManagerName } from './js-package-
 import { getPackageDetails, JsPackageManagerFactory, useNpmWarning } from './js-package-manager';
 import { commandLog } from './helpers';
 import { automigrate } from './automigrate';
+import coreVersions from './versions';
 
 type Package = {
   package: string;
@@ -25,32 +26,8 @@ export const getStorybookVersion = (line: string) => {
   };
 };
 
-const excludeList = [
-  '@storybook/addon-bench',
-  '@storybook/addon-console',
-  '@storybook/addon-postcss',
-  '@storybook/babel-plugin-require-context-hook',
-  '@storybook/bench',
-  '@storybook/builder-vite',
-  '@storybook/csf',
-  '@storybook/design-system',
-  '@storybook/ember-cli-storybook',
-  '@storybook/eslint-config-storybook',
-  '@storybook/expect',
-  '@storybook/jest',
-  '@storybook/linter-config',
-  '@storybook/mdx1-csf',
-  '@storybook/mdx2-csf',
-  '@storybook/react-docgen-typescript-plugin',
-  '@storybook/storybook-deployer',
-  '@storybook/test-runner',
-  '@storybook/testing-library',
-  '@storybook/testing-react',
-];
 export const isCorePackage = (pkg: string) =>
-  pkg.startsWith('@storybook/') &&
-  !pkg.startsWith('@storybook/preset-') &&
-  !excludeList.includes(pkg);
+  coreVersions[pkg as keyof typeof coreVersions] !== undefined;
 
 const deprecatedPackages = [
   {
@@ -144,7 +121,10 @@ export interface UpgradeOptions {
   dryRun: boolean;
   yes: boolean;
   disableTelemetry: boolean;
+  configDir?: string;
 }
+
+export const NON_CANARY_REGEX = /^(\^|~|>|>=)?([0-9]+)\.([0-9]+)\.([0-9]+)(-([a-z]+\.)?[0-9]+)?$/;
 
 export const doUpgrade = async ({
   tag,
@@ -153,6 +133,7 @@ export const doUpgrade = async ({
   useNpm,
   packageManager: pkgMgr,
   dryRun,
+  configDir,
   yes,
   ...options
 }: UpgradeOptions) => {
@@ -173,17 +154,19 @@ export const doUpgrade = async ({
     );
   }
 
+  let flags = [];
   let target = 'latest';
   if (prerelease) {
     // '@next' is storybook's convention for the latest prerelease tag.
-    // This used to be 'greatest', but that was not reliable and could pick canaries, etc.
-    // and random releases of other packages with storybook in their name.
-    target = '@next';
+    // However it doesn't upgrade other storybook-related packages like
+    // storybook-addon-designs. 'greatest' does, but we filter out canaries
+    // to try to eliminate the junk
+    target = 'greatest';
+    flags.push(`--filterVersion "${NON_CANARY_REGEX.toString()}"`);
   } else if (tag) {
     target = `@${tag}`;
   }
 
-  let flags = [];
   if (!dryRun) flags.push('--upgrade');
   flags.push('--target');
   flags.push(target);
@@ -208,12 +191,23 @@ export const doUpgrade = async ({
   let automigrationResults;
   if (!skipCheck) {
     checkVersionConsistency();
-    automigrationResults = await automigrate({ dryRun, yes, packageManager: pkgMgr });
+    automigrationResults = await automigrate({ dryRun, yes, packageManager: pkgMgr, configDir });
   }
 
   if (!options.disableTelemetry) {
     const afterVersion = await getStorybookCoreVersion();
-    telemetry('upgrade', { prerelease, tag, automigrationResults, beforeVersion, afterVersion });
+    const { preCheckFailure, ...results } = automigrationResults || {};
+    const automigrationTelemetry = {
+      automigrationResults: preCheckFailure ? null : results,
+      automigrationPreCheckFailure: preCheckFailure || null,
+    };
+    telemetry('upgrade', {
+      prerelease,
+      tag,
+      beforeVersion,
+      afterVersion,
+      ...automigrationTelemetry,
+    });
   }
 };
 

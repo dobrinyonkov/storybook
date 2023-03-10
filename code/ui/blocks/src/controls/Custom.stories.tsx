@@ -16,7 +16,7 @@ export default {
   argTypes: {
     content: {
       control: {
-        type: 'nativeselect',
+        type: 'nativetextarea',
       },
     },
   },

@@ -4,11 +4,19 @@ import { serverRequire } from './interpret-require';
 import { validateConfigurationFiles } from './validate-configuration-files';
 
 export async function loadMainConfig({
-  configDir,
+  configDir = '.storybook',
+  noCache = false,
 }: {
   configDir: string;
+  noCache?: boolean;
 }): Promise<StorybookConfig> {
   await validateConfigurationFiles(configDir);
 
-  return serverRequire(path.resolve(configDir, 'main'));
+  const mainJsPath = path.resolve(configDir, 'main');
+
+  if (noCache && require.cache[require.resolve(mainJsPath)]) {
+    delete require.cache[require.resolve(mainJsPath)];
+  }
+
+  return serverRequire(mainJsPath);
 }
