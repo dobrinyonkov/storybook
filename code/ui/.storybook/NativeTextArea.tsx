@@ -7,12 +7,5 @@ export const NativeTextArea: FC<any> = ({ name, value, onChange }) => {
     onChange(event.target.value);
   };
 
-  return (
-    <textarea
-      value={value}
-      id={getControlId(name)}
-      className="textarea-test-dobri"
-      onChange={handleChange}
-    />
-  );
+  return <textarea value={value} id={getControlId(name)} onChange={handleChange} />;
 };
